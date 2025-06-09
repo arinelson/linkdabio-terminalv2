@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <title>Cyber Terminal Access</title>
+    <meta name="description" content="Hub de conexões e portfólio de serviços de tecnologia com uma estética cyberpunk e temas diários.">
+
+    <meta http-equiv="Content-Security-Policy" content="
+        default-src 'self'; 
+        script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; 
+        style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; 
+        font-src 'self' https://fonts.gstatic.com;
+        img-src 'self' data:;
+        connect-src 'self' https://fonts.googleapis.com;">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inconsolata:wght@400;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.min.js" async></script>
+
+    <style>
+        :root {
+            --terminal-bg: #0a0a12;
+            --terminal-green: #0f0; 
+            --terminal-cyan: #0ff; 
+            --terminal-purple: #b19cd9;
+            --terminal-red: #f44;
+            --terminal-glow: rgba(0, 255, 0, 0.7);
+            --text-color: #e0e0e0;
+            --text-shadow: 0 0 8px var(--terminal-glow);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: #000;
+            overflow: hidden;
+            font-family: 'Inconsolata', monospace;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            perspective: 1000px;
+            -webkit-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        .matrix-background { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; opacity: 0.15; }
+
+        .terminal-container {
+            position: relative;
+            width: 90%;
+            max-width: 600px;
+            height: 85vh;
+            max-height: 800px;
+            background: var(--terminal-bg);
+            border-radius: 8px;
+            box-shadow: 0 0 30px var(--terminal-glow), inset 0 0 10px rgba(0, 255, 0, 0.2);
+            overflow: hidden;
+            border: 1px solid var(--terminal-green);
+            transform-style: preserve-3d;
+            animation: float 8s ease-in-out infinite;
+            transition: border-color 0.5s ease, box-shadow 0.5s ease;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0) rotateX(10deg) rotateY(5deg); }
+            50% { transform: translateY(-20px) rotateX(5deg) rotateY(10deg); }
+        }
+
+        .terminal-header {
+            background: linear-gradient(to right, #0a0a0a, #111);
+            padding: 8px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: var(--terminal-green);
+            font-family: 'Share Tech Mono', monospace;
+            border-bottom: 1px solid var(--terminal-green);
+            box-shadow: 0 2px 15px var(--terminal-glow);
+            transition: color 0.5s ease, border-color 0.5s ease, box-shadow 0.5s ease;
+        }
+
+        .terminal-buttons { display: flex; gap: 8px; }
+        .terminal-button { width: 12px; height: 12px; border-radius: 50%; border: 1px solid rgba(255, 255, 255, 0.2); }
+        .terminal-button.red { background: #ff5f56; }
+        .terminal-button.yellow { background: #ffbd2e; }
+        .terminal-button.green { background: #27c93f; }
+
+        .terminal-body {
+            padding: 20px;
+            height: calc(100% - 40px);
+            overflow-y: auto;
+            color: var(--text-color);
+            text-shadow: var(--text-shadow);
+            line-height: 1.6;
+            transition: text-shadow 0.5s ease;
+        }
+        
+        .terminal-body::-webkit-scrollbar { width: 8px; }
+        .terminal-body::-webkit-scrollbar-track { background: var(--terminal-bg); }
+        .terminal-body::-webkit-scrollbar-thumb { background-color: var(--terminal-green); border-radius: 4px; }
+
+        .typing-text { white-space: pre-wrap; font-size: 1.1rem; }
+        .hidden { display: none; }
+        .menu-container { margin-top: 25px; animation: fadeIn 1s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .accordion-trigger {
+            background-color: transparent;
+            border: 1px solid var(--terminal-green);
+            color: var(--terminal-green);
+            padding: 14px;
+            width: 100%;
+            text-align: left;
+            text-decoration: none;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 5px var(--terminal-glow);
+            display: flex;
+            align-items: center;
+            margin-top: 15px;
+        }
+        
+        .accordion-trigger:first-child { margin-top: 0; }
+        
+        .accordion-trigger.active,
+        .accordion-trigger:hover {
+            background-color: var(--hover-bg-color);
+            color: var(--terminal-cyan);
+            border-color: var(--terminal-cyan);
+            text-shadow: 0 0 10px var(--terminal-cyan);
+            box-shadow: 0 0 15px var(--terminal-glow);
+            transform: translateY(-2px);
+        }
+
+        .accordion-trigger::after {
+            content: '[+]';
+            color: var(--terminal-green);
+            margin-left: auto;
+            transition: transform 0.3s ease, color 0.5s ease;
+        }
+
+        .accordion-trigger.active::after { content: '[-]'; color: var(--terminal-cyan); }
+
+        .submenu {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease-out, border-color 0.5s ease;
+            background: rgba(10, 10, 18, 0.8);
+            padding-left: 20px;
+            border-left: 1px solid var(--terminal-green);
+            border-right: 1px solid var(--terminal-green);
+            border-bottom: 1px solid var(--terminal-green);
+            border-bottom-left-radius: 4px;
+            border-bottom-right-radius: 4px;
+        }
+
+        .submenu a, .submenu-item { display: block; text-decoration: none; padding: 12px 15px; transition: all 0.2s ease; font-family: 'Inconsolata', monospace; border-left: 3px solid transparent; }
+        .submenu p { padding: 15px; color: var(--text-color); }
+
+        .link-github { color: #e0e0e0; }
+        .link-linkedin { color: #0A66C2; }
+        .link-instagram { color: #E1306C; }
+        .link-youtube { color: #FF0000; }
+        .link-threads { color: #f0f0f0; }
+        .link-facebook { color: #1877F2; }
+        
+        .submenu a:hover { transform: translateX(5px); }
+
+        .link-github:hover { background-color: rgba(224, 224, 224, 0.1); border-left-color: #e0e0e0; }
+        .link-linkedin:hover { background-color: rgba(10, 102, 194, 0.15); border-left-color: #0A66C2;}
+        .link-instagram:hover { background-color: rgba(225, 48, 108, 0.15); border-left-color: #E1306C;}
+        .link-youtube:hover { background-color: rgba(255, 0, 0, 0.15); border-left-color: #FF0000; }
+        .link-threads:hover { background-color: rgba(240, 240, 240, 0.15); border-left-color: #f0f0f0; }
+        .link-facebook:hover { background-color: rgba(24, 119, 242, 0.15); border-left-color: #1877F2;}
+        
+        .submenu-item { color: var(--terminal-purple); }
+        .submenu-item:hover { background-color: rgba(177, 156, 217, 0.15); border-left-color: var(--terminal-purple); }
+        
+        .button-icon { width: 16px; height: 16px; margin-right: 10px; fill: currentColor; vertical-align: middle; }
+        .form-container { padding: 15px; border-top: 1px dashed var(--terminal-purple); }
+        .form-group { margin-bottom: 15px; }
+        .form-container label { display: block; color: var(--terminal-purple); margin-bottom: 5px; }
+
+        .form-input, .form-textarea {
+            width: 100%;
+            background: transparent;
+            border: 1px solid var(--terminal-green);
+            color: var(--terminal-green);
+            padding: 10px;
+            font-family: 'Inconsolata', monospace;
+            font-size: 1rem;
+            caret-color: var(--terminal-green);
+            transition: color 0.5s ease, border-color 0.5s ease;
+        }
+        
+        .form-input:focus, .form-textarea:focus { outline: none; border-color: var(--terminal-cyan); box-shadow: 0 0 10px var(--terminal-glow); }
+        .form-textarea { resize: vertical; min-height: 80px; }
+
+        .form-submit-btn {
+            background: var(--terminal-green);
+            color: var(--terminal-bg);
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-submit-btn:hover { background: var(--terminal-cyan); box-shadow: 0 0 15px var(--terminal-glow); }
+
+        /* Estilos do Rodapé do Terminal */
+        .terminal-footer {
+            margin-top: 40px;
+            padding-top: 15px;
+            border-top: 1px dashed var(--terminal-purple);
+            text-align: center;
+            font-size: 0.8rem;
+            color: var(--terminal-purple);
+            font-family: 'Share Tech Mono', monospace;
+            line-height: 1.6;
+        }
+        
+        .terminal-footer p {
+            margin: 0;
+            padding: 0 10px;
+            text-shadow: 0 0 4px var(--terminal-glow);
+        }
+
+        .terminal-footer a {
+            color: var(--terminal-cyan);
+            text-decoration: none;
+            font-weight: bold;
+            transition: color 0.3s ease, text-shadow 0.3s ease;
+        }
+
+        .terminal-footer a:hover {
+            color: #fff;
+            text-shadow: 0 0 8px var(--terminal-cyan);
+        }
+
+        .terminal-footer .cta-link {
+            color: var(--terminal-green);
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="matrix" class="matrix-background"></canvas>
+        
+    <div class="terminal-container">
+        <div class="terminal-header">
+            <div class="terminal-buttons">
+                <div class="terminal-button red"></div>
+                <div class="terminal-button yellow"></div>
+                <div class="terminal-button green"></div>
+            </div>
+            <div>user@hub:~</div>
+            <div style="width: 50px;"></div>
+        </div>
+        <div class="terminal-body" id="terminal-body">
+            <div id="typing-text" class="typing-text"></div>
+            
+            <div id="main-menu" class="menu-container hidden">
+                <!-- O HTML do menu permanece o mesmo -->
+                <div class="accordion-item">
+                    <button class="accordion-trigger">
+                         <svg class="button-icon" viewBox="0 0 24 24"><path d="M12 2c5.514 0 10 4.486 10 10s-4.486 10-10 10-10-4.486-10-10 4.486-10 10-10zm0-2c-6.627 0-12 5.373-12 12s5.373 12 12 12 12-5.373 12-12-5.373-12-12-12zm-.001 5.5c-1.381 0-2.5 1.119-2.5 2.5s1.119 2.5 2.5 2.5 2.5-1.119 2.5-2.5-1.119-2.5-2.5-2.5zm1.5 8.5h-3v-1h3v1zm0-3h-3v-1h3v1zm0-3h-3v-1h3v1z"/></svg>
+                        <span>// QUEM_SOU_EU</span>
+                    </button>
+                    <div class="submenu">
+                       <p>Arquiteto de soluções digitais e estrategista de tecnologia. Minha missão é traduzir desafios complexos em sistemas eficientes e inovadores, construindo a ponte entre o presente e as possibilidades do futuro para empresas que buscam a vanguarda tecnológica.</p>
+                    </div>
+                </div>
+
+                <div class="accordion-item">
+                    <button class="accordion-trigger">
+                        <svg class="button-icon" viewBox="0 0 24 24"><path d="M8.272 6.513c-.583-1.325-.23-2.924 1.096-3.507.039-.017.06-.039.098-.056 1.637-.923 3.655-.228 4.578 1.409.923 1.637.228 3.655-1.409 4.578-1.298.73-2.936.29-3.864-.897l-3.328 3.328c.607 1.05.679 2.404.225 3.53l-2.459 2.459c-1.562 1.562-4.095 1.562-5.657 0s-1.562-4.095 0-5.657l2.459-2.459c1.126-.453 2.48-.382 3.53.225l3.328-3.328c-1.187-.928-1.627-2.566-.897-3.864zm8.924 8.924c.928 1.187.489 2.825-.802 3.555-1.637.923-3.655-.228-4.578-1.409-.923-1.637-.228-3.655 1.409-4.578.026-.015.052-.028.079-.041.066-.035.132-.069.199-.101l3.328-3.328c-.607-1.05-.679-2.404-.225-3.53l2.459-2.459c1.562-1.562 4.095-1.562 5.657 0s1.562 4.095 0 5.657l-2.459 2.459c-1.126-.453-2.48-.382 3.53-.225l-3.328 3.328c1.187.928 1.627 2.566.897 3.864.001.001.001.001 0 .001z"/></svg>
+                        <span>// REDES SOCIAIS</span>
+                    </button>
+                    <div class="submenu">
+                        <a href="#" target="_blank" class="link-github" rel="noopener noreferrer">> GitHub</a>
+                        <a href="#" target="_blank" class="link-linkedin" rel="noopener noreferrer">> LinkedIn</a>
+                        <a href="#" target="_blank" class="link-instagram" rel="noopener noreferrer">> Instagram</a>
+                        <a href="#" target="_blank" class="link-youtube" rel="noopener noreferrer">> YouTube</a>
+                        <a href="#" target="_blank" class="link-threads" rel="noopener noreferrer">> Threads</a>
+                        <a href="#" target="_blank" class="link-facebook" rel="noopener noreferrer">> Facebook</a>
+                    </div>
+                </div>
+
+                <div class="accordion-item">
+                     <button class="accordion-trigger">
+                        <svg class="button-icon" viewBox="0 0 24 24"><path d="M14 2h-10c-1.104 0-2 .896-2 2v16c0 1.104.896 2 2 2h12c1.104 0 2-.896 2-2v-14l-4-4zm-2 16h-6v-2h6v2zm0-4h-6v-2h6v2zm4-4h-10v-2h10v2z"/></svg>
+                        <span>// PORTFÓLIO DE SERVIÇOS</span>
+                    </button>
+                    <div class="submenu">
+                        <a href="#" target="_blank" class="submenu-item" rel="noopener noreferrer">> Desenvolvimento de Sites</a>
+                        <a href="#" target="_blank" class="submenu-item" rel="noopener noreferrer">> Criação de Chatbots IA</a>
+                        <a href="#" target="_blank" class="submenu-item" rel="noopener noreferrer">> Implementação Tecnológica</a>
+                    </div>
+                </div>
+
+                <div class="accordion-item">
+                     <button class="accordion-trigger" id="contact-trigger">
+                        <svg class="button-icon" viewBox="0 0 24 24"><path d="M22 6.5v11c0 1.379-1.121 2.5-2.5 2.5h-15c-1.379 0-2.5-1.121-2.5-2.5v-11c0-1.379 1.121-2.5 2.5-2.5h15c1.379 0 2.5 1.121 2.5 2.5zm-2.5 1c-.139 0-.274.013-.404.039l-6.89 4.319-6.889-4.319c-.131-.026-.266-.039-.405-.039h-.022c-.06 0-.119.005-.178.013l7.489 4.694 7.488-4.694c-.059-.008-.118-.013-.178-.013h-.022zM3.5 8.139l6.549 4.102c.241.151.528.228.816.228s.575-.077.816-.228l6.549-4.102v9.361c0 .276-.224.5-.5.5h-15c-.276 0-.5-.224-.5-.5v-9.361z"/></svg>
+                        <span>// ENVIAR MENSAGEM</span>
+                    </button>
+                    <div class="submenu">
+                        <form id="contact-form" class="form-container" novalidate>
+                            <div class="form-group">
+                                <label for="name">> NOME_DE_USUARIO:</label>
+                                <input type="text" id="name" name="name" class="form-input" required autocomplete="name">
+                            </div>
+                            <div class="form-group">
+                                <label for="email">> CANAL_DE_RETORNO (EMAIL):</label>
+                                <input type="email" id="email" name="email" class="form-input" required autocomplete="email">
+                            </div>
+                            <div class="form-group">
+                                <label for="message">> MENSAGEM:</label>
+                                <textarea id="message" name="message" class="form-textarea" required></textarea>
+                            </div>
+                            <button type="submit" class="form-submit-btn">> TRANSMITIR</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div id="form-response" class="typing-text" style="margin-top:20px;"></div>
+            
+            <div class="terminal-footer">
+                <p>
+                    Idealizado por <a href="https://www.instagram.com/arinelson.santos/" target="_blank" rel="noopener noreferrer">Arinelson Santos</a>.
+                    <br>
+                    Deseja construir a sua experiência única? <a href="#" target="_blank" class="cta-link" rel="noopener noreferrer">Entre na lista de espera e solicite um orçamento.</a>
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        'use strict';(function(){let k,v;let A=false;function C(){if(window.Tone&&!A){Tone.start().then(()=>{k=new Tone.MembraneSynth({pitchDecay:0.01,octaves:7,oscillator:{type:'sine'},envelope:{attack:0.001,decay:0.2,sustain:0.01,release:0.4,attackCurve:'exponential'}}).toDestination();k.volume.value=-25;v=new Tone.PolySynth(Tone.Synth,{oscillator:{type:'fmsquare'},envelope:{attack:0.01,decay:0.2,sustain:0.2,release:0.2}}).toDestination();v.volume.value=-9;A=true;console.log("Audio Context is ready.")}).catch(e=>console.error("Could not start audio context: ",e))}}const D=document.getElementById('matrix');const E=D.getContext('2d');const F='アァカサタナハマヤャラワガザダバパイィキシチニヒミリヰギジヂビピウゥクスツヌフムユュルグズブヅプエェケセテネヘメレヱゲゼデベペオォコソトノホモヨョロヲゴゾドボポヴッンABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';const G=16;let H,I,J;function K(){D.width=window.innerWidth;D.height=window.innerHeight;H=D.width/G;I=[];for(let x=0;x<H;x++)I[x]=1}function L(){const a=getComputedStyle(document.documentElement).getPropertyValue('--terminal-green').trim()||'#0f0';E.fillStyle='rgba(0, 0, 0, 0.05)';E.fillRect(0,0,D.width,D.height);E.fillStyle=a;E.font=`${G}px monospace`;for(let i=0;i<I.length;i++){const b=F.charAt(Math.floor(Math.random()*F.length));E.fillText(b,i*G,I[i]*G);if(I[i]*G>D.height&&Math.random()>0.975){I[i]=0}I[i]++}}function M(){L();J=requestAnimationFrame(M)}const N={0:{name:'Domingo',color:'#C2B280',hoverColor:'#D8C691',glow:'rgba(194, 178, 128, 0.6)',messages:["Analisando a semana e planejando o futuro...","[...] Preparando o terreno para novos desafios.","Pausa para reflexão estratégica.","> ANALISANDO O PROGRESSO."]},1:{name:'Segunda-feira',color:'#00FFFF',hoverColor:'#7fffd4',glow:'rgba(0, 255, 255, 0.7)',messages:["Iniciando rotina de alto desempenho...","[...] Preparando para uma semana produtiva.","Reinicializando com foco total.","> EXECUÇÃO INICIADA."]},2:{name:'Terça-feira',color:'#FFD700',hoverColor:'#FFDF32',glow:'rgba(255, 215, 0, 0.7)',messages:["Acessando base de dados de conhecimento...","[...] Buscando insights e aprendizado.","Expandindo horizontes digitais.","> CONSULTA AOS DADOS INICIADA."]},3:{name:'Quarta-feira',color:'#9370DB',hoverColor:'#A488E2',glow:'rgba(147, 112, 219, 0.7)',messages:["Otimizando fluxo de trabalho...","[...] Direcionando energia para tarefas cruciais.","Modo de alta performance ativado.","> PROCESSAMENTO EM ANDAMENTO."]},4:{name:'Quinta-feira',color:'#4682B4',hoverColor:'#5F99C5',glow:'rgba(70, 130, 180, 0.7)',messages:["Estabelecendo conexões...","[...] Interagindo com a rede e oportunidades.","Expandindo o network digital.","> CONECTANDO COM A COMUNIDADE."]},5:{name:'Sexta-feira',color:'#32CD32',hoverColor:'#53E253',glow:'rgba(50, 205, 50, 0.7)',messages:["Liberando o potencial criativo...","[...] Explorando novas ideias e soluções.","Desbloqueando a inovação digital.","> GERANDO NOVAS POSSIBILIDADES."]},6:{name:'Sábado',color:'#C0C0C0',hoverColor:'#D3D3D3',glow:'rgba(192, 192, 192, 0.6)',messages:["Explorando novos territórios digitais...","[...] Em busca de inspiração e novidades.","Navegando pelo desconhecido digital.","> BUSCANDO NOVAS FRONTEIRAS."]}};function O(){const a=new Date();const b=a.getDay();const c=N[b];const d=document.documentElement;d.style.setProperty('--terminal-green',c.color);d.style.setProperty('--terminal-cyan',c.hoverColor);d.style.setProperty('--terminal-glow',c.glow);const f=c.color;const g=parseInt(f.slice(1,3),16);const h=parseInt(f.slice(3,5),16);const i=parseInt(f.slice(5,7),16);d.style.setProperty('--hover-bg-color',`rgba(${g}, ${h}, ${i}, 0.15)`);return c}function P(a){const b=new Date();const c=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];const d=b.getDate();const e=c[b.getMonth()];const f=b.getFullYear();const g=b.getHours().toString().padStart(2,'0');const h=b.getMinutes().toString().padStart(2,'0');return`> [${a}, ${d} de ${e} de ${f} // ${g}:${h}]`}function Q(a,b,c){let d=0;let e=0;function f(){if(d>=a.length){if(c)c();return}const g=a[d];if(e<g.text.length){const h=document.createElement('span');h.textContent=g.text.charAt(e);if(g.style)h.style.cssText=g.style;b.appendChild(h);if(A&&g.text.charAt(e)!==' '){k.triggerAttack("C2")}e++;setTimeout(f,g.delay)}else{if(A&&g.text.includes("> EXECUÇÃO INICIADA.")){v.triggerAttackRelease(['C5','G5'],'16n')}d++;e=0;setTimeout(f,100)}}f()}function R(e){e.preventDefault();const a=document.getElementById('contact-trigger');const b=a.nextElementSibling;b.style.maxHeight=null;a.classList.remove('active');const c=document.getElementById('form-response');let d=5;c.style.color='var(--terminal-green)';c.innerHTML=`> Transmissão iniciando em ${d}...`;const f=setInterval(()=>{d--;c.innerHTML=`> Transmissão iniciando em ${d}...`;if(d<=0){clearInterval(f);c.style.color='var(--terminal-cyan)';c.innerHTML=`> [SUCESSO] Redirecionando para canal seguro...`;const g=document.getElementById('name').value;const h=document.getElementById('email').value;const i=document.getElementById('message').value;const j="5582987125315";const l=`Olá, vim pelo seu site!\n\n*Nome:* ${g}\n*Email:* ${h}\n\n*Mensagem:*\n${i}`;const m=`https://wa.me/${j}?text=${encodeURIComponent(l)}`;window.open(m,'_blank','noopener,noreferrer');e.target.reset();setTimeout(()=>{c.innerHTML=""},5000)}},1000)}document.addEventListener('contextmenu',e=>e.preventDefault());document.addEventListener('DOMContentLoaded',()=>{K();M();document.body.addEventListener('click',C,{once:true});document.body.addEventListener('touchend',C,{once:true});const a=document.getElementById('typing-text');const b=document.getElementById('main-menu');const c=O();const d=[{text:c.messages[0],delay:30},{text:`\n${c.messages[1]}`,delay:30,style:`color: var(--terminal-cyan)`},{text:`\n\n${P(c.name)}`,delay:30,style:"color: var(--terminal-purple)"},{text:`\n\n${c.messages[2]}`,delay:30},{text:`\n\n${c.messages[3]}`,delay:20,style:"color: var(--terminal-green); font-weight: bold"},{text:"\n\n",delay:10}];Q(d,a,()=>{b.classList.remove('hidden')});const f=document.querySelectorAll('.accordion-trigger');f.forEach(g=>{if(g.tagName==='BUTTON'){g.addEventListener('click',function(){f.forEach(h=>{if(h!==this&&h.classList.contains('active')){h.classList.remove('active');h.nextElementSibling.style.maxHeight=null}});this.classList.toggle('active');const i=this.nextElementSibling;i.style.maxHeight=i.style.maxHeight?null:`${i.scrollHeight}px`})}});document.getElementById('contact-form').addEventListener('submit',R)});let B;window.addEventListener('resize',()=>{clearTimeout(B);B=setTimeout(()=>{if(J)cancelAnimationFrame(J);K();M()},150)})})()</script>
+</body>
+</html>
